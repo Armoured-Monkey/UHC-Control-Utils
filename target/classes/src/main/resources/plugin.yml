@@ -3,11 +3,10 @@ version: ${project.version}
 author: ArmouredMonkey
 main: io.github.armouredmonkey.LPTeamSync
 depend: [LuckPerms]
-softdepend: [WorldGuard, PlaceholderAPI]
 api-version: 1.13
 
 commands:
-  extracontexts-reload:
+  lpts-reload:
     description: Reloads the configuration
-    permission: extracontexts.reload
-    usage: /extracontexts-reload
+    permission: lpteamsync.reload
+    usage: /lpts-reload

@@ -1,29 +1,37 @@
 package io.github.armouredmonkey;
 
 import io.github.armouredmonkey.calculators.TeamCalculator;
-
 import net.luckperms.api.LuckPerms;
 import net.luckperms.api.context.ContextCalculator;
 import net.luckperms.api.context.ContextManager;
 
+import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
+import org.bukkit.event.EventHandler;
+import org.bukkit.event.Listener;
+import org.bukkit.event.player.PlayerJoinEvent;
+import org.bukkit.event.server.ServerCommandEvent;
+import org.bukkit.event.player.PlayerCommandPreprocessEvent;
+import org.bukkit.event.server.PluginDisableEvent;
 import org.bukkit.plugin.java.JavaPlugin;
 
 import java.util.ArrayList;
 import java.util.List;
 import java.util.function.Supplier;
 
-public class LPTeamSync extends JavaPlugin implements CommandExecutor {
+public class LPTeamSync extends JavaPlugin implements CommandExecutor, Listener {
+
     private ContextManager contextManager;
+    private LuckPerms luckPerms;
     private final List<ContextCalculator<Player>> registeredCalculators = new ArrayList<>();
 
     @Override
     public void onEnable() {
-        LuckPerms luckPerms = getServer().getServicesManager().load(LuckPerms.class);
+        this.luckPerms = getServer().getServicesManager().load(LuckPerms.class);
         if (luckPerms == null) {
             throw new IllegalStateException("LuckPerms API not loaded.");
         }
@@ -31,6 +39,9 @@ public class LPTeamSync extends JavaPlugin implements CommandExecutor {
 
         saveDefaultConfig();
         setup();
+
+        // Register listener to catch team changes
+        getServer().getPluginManager().registerEvents(this, this);
     }
 
     @Override
@@ -49,7 +60,7 @@ public class LPTeamSync extends JavaPlugin implements CommandExecutor {
 
     private void setup() {
         register("team", null, TeamCalculator::new);
-        }
+    }
 
     private void register(String option, String requiredPlugin, Supplier<ContextCalculator<Player>> calculatorSupplier) {
         if (getConfig().getBoolean(option, false)) {
@@ -69,4 +80,24 @@ public class LPTeamSync extends JavaPlugin implements CommandExecutor {
         this.registeredCalculators.clear();
     }
 
+    // Called when player joins – already triggers context
+    @EventHandler
+    public void onPlayerJoin(PlayerJoinEvent event) {
+        refreshContext(event.getPlayer());
+    }
+
+    // Called when a command like /team join or /team leave is used
+    @EventHandler
+    public void onCommand(PlayerCommandPreprocessEvent event) {
+        String message = event.getMessage().toLowerCase();
+        if (message.startsWith("/team ")) {
+            Bukkit.getScheduler().runTaskLater(this, () -> refreshContext(event.getPlayer()), 1L);
+        }
+    }
+
+    private void refreshContext(Player player) {
+        if (player != null && player.isOnline()) {
+            contextManager.signalContextUpdate(player);
+        }
+    }
 }

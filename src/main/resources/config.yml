@@ -10,4 +10,4 @@
 # Returns the name of the team the players is in.
 #
 # e.g. team=pvp-blue
-team: false
+team: true
