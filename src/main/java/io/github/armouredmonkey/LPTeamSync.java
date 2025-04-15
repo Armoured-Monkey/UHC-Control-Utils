@@ -103,7 +103,7 @@ public class LPTeamSync extends JavaPlugin implements CommandExecutor, Listener 
     // Forces DiscordSRV to resync the player's Discord role based on their LuckPerms group
     public static void runDiscordUpdate(Player player) {
         Bukkit.getScheduler().runTask(JavaPlugin.getProvidingPlugin(LPTeamSync.class), () -> {
-            Bukkit.dispatchCommand(Bukkit.getConsoleSender(), "discordsrv update " + player.getName());
+            Bukkit.dispatchCommand(Bukkit.getConsoleSender(), "discordsrv resync " + player.getName());
         });
     }
 }
