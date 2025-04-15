@@ -14,9 +14,7 @@ import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.player.PlayerJoinEvent;
-import org.bukkit.event.server.ServerCommandEvent;
 import org.bukkit.event.player.PlayerCommandPreprocessEvent;
-import org.bukkit.event.server.PluginDisableEvent;
 import org.bukkit.plugin.java.JavaPlugin;
 
 import java.util.ArrayList;
@@ -86,7 +84,7 @@ public class LPTeamSync extends JavaPlugin implements CommandExecutor, Listener 
         refreshContext(event.getPlayer());
     }
 
-    // Called when a command like /team join or /team leave is used
+    // Called when /trigger uhc.team is used
     @EventHandler
     public void onCommand(PlayerCommandPreprocessEvent event) {
         String message = event.getMessage().toLowerCase();
@@ -98,6 +96,14 @@ public class LPTeamSync extends JavaPlugin implements CommandExecutor, Listener 
     private void refreshContext(Player player) {
         if (player != null && player.isOnline()) {
             contextManager.signalContextUpdate(player);
+            runDiscordUpdate(player);
         }
+    }
+
+    // Forces DiscordSRV to resync the player's Discord role based on their LuckPerms group
+    public static void runDiscordUpdate(Player player) {
+        Bukkit.getScheduler().runTask(JavaPlugin.getProvidingPlugin(LPTeamSync.class), () -> {
+            Bukkit.dispatchCommand(Bukkit.getConsoleSender(), "discordsrv update " + player.getName());
+        });
     }
 }

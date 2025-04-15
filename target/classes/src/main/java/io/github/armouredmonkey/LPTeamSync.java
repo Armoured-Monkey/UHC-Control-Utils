@@ -90,7 +90,7 @@ public class LPTeamSync extends JavaPlugin implements CommandExecutor, Listener 
     @EventHandler
     public void onCommand(PlayerCommandPreprocessEvent event) {
         String message = event.getMessage().toLowerCase();
-        if (message.startsWith("/team ")) {
+        if (message.startsWith("/trigger uhc.team")) {
             Bukkit.getScheduler().runTaskLater(this, () -> refreshContext(event.getPlayer()), 1L);
         }
     }
