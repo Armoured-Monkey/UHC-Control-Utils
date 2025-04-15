@@ -1,0 +1,6 @@
+name: LPTeamSync
+version: 1.0.0
+main: io.github.armouredmonkey.LPTeamSync
+description: Sync Luck Perms Groups and Minecraft Teams
+author: ArmouredMonkey
+api-version: '1.21.4'
