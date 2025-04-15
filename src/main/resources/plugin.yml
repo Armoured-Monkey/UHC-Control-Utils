@@ -1,6 +1,13 @@
-name: LPTeamSync
-version: 1.0.0
-main: io.github.armouredmonkey.LPTeamSync
-description: Sync Luck Perms Groups and Minecraft Teams
+name: ${project.name}
+version: ${project.version}
 author: ArmouredMonkey
-api-version: '1.21.4'
+main: io.github.armouredmonkey.LPTeamSync
+depend: [LuckPerms]
+softdepend: [WorldGuard, PlaceholderAPI]
+api-version: 1.13
+
+commands:
+  extracontexts-reload:
+    description: Reloads the configuration
+    permission: extracontexts.reload
+    usage: /extracontexts-reload

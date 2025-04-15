@@ -1,0 +1,13 @@
+# ExtraContexts
+# made with <3 by Luck
+
+
+# Set a provider to true to enable it.
+# Contexts are explained in more detail here:
+# https://github.com/lucko/LuckPerms/wiki/Context
+
+# Provides the 'team' context.
+# Returns the name of the team the players is in.
+#
+# e.g. team=pvp-blue
+team: false
