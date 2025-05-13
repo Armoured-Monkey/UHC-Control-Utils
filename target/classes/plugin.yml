@@ -1,5 +1,5 @@
 name: LPTeamSync
-version: 1.0.0
+version: 1.0.1
 author: ArmouredMonkey
 main: io.github.armouredmonkey.LPTeamSync
 depend: [LuckPerms]
