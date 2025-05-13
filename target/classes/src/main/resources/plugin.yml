@@ -10,3 +10,8 @@ commands:
     description: Reloads the configuration
     permission: lpteamsync.reload
     usage: /lpts-reload
+
+  lpts-sync:
+    description: Force sync of Minecraft teams and Discord roles
+    permission: lpteamsync.sync
+    usage: /lpts-sync
