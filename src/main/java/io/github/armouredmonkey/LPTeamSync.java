@@ -47,14 +47,33 @@ public class LPTeamSync extends JavaPlugin implements CommandExecutor, Listener 
         unregisterAll();
     }
 
-    @Override
-    public boolean onCommand(CommandSender sender, Command command, String label, String[] args) {
+@Override
+public boolean onCommand(CommandSender sender, Command command, String label, String[] args) {
+    if (label.equalsIgnoreCase("lpts-reload")) {
         unregisterAll();
         reloadConfig();
         setup();
         sender.sendMessage(ChatColor.GREEN + "LPTeamSync configuration reloaded.");
         return true;
     }
+
+    if (label.equalsIgnoreCase("lpts-sync")) {
+        for (Player player : Bukkit.getOnlinePlayers()) {
+            refreshContext(player);
+        }
+
+        sender.sendMessage(ChatColor.YELLOW + "Contexts refreshed. Running DiscordSRV resync...");
+
+        // Delay to ensure LuckPerms updates are done before DiscordSRV sync
+        Bukkit.getScheduler().runTaskLater(this, () -> {
+            Bukkit.dispatchCommand(Bukkit.getConsoleSender(), "discordsrv resync");
+        }, 40L); // ~2 seconds delay
+
+        return true;
+    }
+
+    return false;
+}
 
     private void setup() {
         register("team", null, TeamCalculator::new);
