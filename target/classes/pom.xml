@@ -5,12 +5,12 @@
     <modelVersion>4.0.0</modelVersion>
 
     <groupId>io.github</groupId>
-    <artifactId>armouredmonkey</artifactId>
+    <artifactId>uhc-control-utils</artifactId>
     <version>1.0.1</version>
     <packaging>jar</packaging>
 
-    <name>LPTeamSync</name>
-    <description>Sync Minecraft Teams with Luck Perms groups through contexts.</description>
+    <name>UHC Control Utils</name>
+    <description>Utilities to manage UHC Control games when on Paper servers.</description>
 
     <licenses>
         <license>
@@ -20,9 +20,9 @@
     </licenses>
 
     <scm>
-        <connection>scm:git:https://github.com/Armoured-Monkey/LPTeamSync.git</connection>
-        <developerConnection>scm:git:git@github.com:Armoured-Monkey/LPTeamSync.git</developerConnection>
-        <url>https://github.com/Armoured-Monkey/LPTeamSync</url>
+        <connection>scm:git:https://github.com/Armoured-Monkey/UHC-Control-Utils.git</connection>
+        <developerConnection>scm:git:git@github.com:Armoured-Monkey/UHC-Control-Utils.git</developerConnection>
+        <url>https://github.com/Armoured-Monkey/UHC-Control-Utils</url>
     </scm>
 
     <properties>

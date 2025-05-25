@@ -1,6 +1,6 @@
 package io.github.armouredmonkey.calculators;
 
-import io.github.armouredmonkey.LPTeamSync;
+import io.github.armouredmonkey.UHCControlUtils;
 import net.luckperms.api.context.ContextCalculator;
 import net.luckperms.api.context.ContextConsumer;
 import net.luckperms.api.context.ContextSet;
@@ -32,7 +32,7 @@ public class TeamCalculator implements ContextCalculator<Player> {
             String last = lastKnownTeam.get(target.getName());
             if (last == null || !last.equals(teamName)) {
                 lastKnownTeam.put(target.getName(), teamName);
-                LPTeamSync.runDiscordUpdate(target);
+                UHCControlUtils.runDiscordUpdate(target);
             }
         }
     }

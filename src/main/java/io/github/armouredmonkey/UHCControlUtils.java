@@ -1,6 +1,7 @@
 package io.github.armouredmonkey;
 
 import io.github.armouredmonkey.calculators.TeamCalculator;
+import io.github.armouredmonkey.uhc.JoinListener;
 import net.luckperms.api.LuckPerms;
 import net.luckperms.api.context.ContextCalculator;
 import net.luckperms.api.context.ContextManager;
@@ -21,7 +22,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.function.Supplier;
 
-public class LPTeamSync extends JavaPlugin implements CommandExecutor, Listener {
+public class UHCControlUtils extends JavaPlugin implements CommandExecutor, Listener {
 
     private ContextManager contextManager;
     private LuckPerms luckPerms;
@@ -38,8 +39,15 @@ public class LPTeamSync extends JavaPlugin implements CommandExecutor, Listener 
         saveDefaultConfig();
         setup();
 
-        // Register listener to catch team changes
+        // Register listener
         getServer().getPluginManager().registerEvents(this, this);
+
+        // Register command handlers
+        getCommand("reload").setExecutor(this);
+        getCommand("sync").setExecutor(this);
+
+        // Register the JoinListener
+        getServer().getPluginManager().registerEvents(new JoinListener(this), this);
     }
 
     @Override
@@ -47,33 +55,35 @@ public class LPTeamSync extends JavaPlugin implements CommandExecutor, Listener 
         unregisterAll();
     }
 
-@Override
-public boolean onCommand(CommandSender sender, Command command, String label, String[] args) {
-    if (label.equalsIgnoreCase("lpts-reload")) {
-        unregisterAll();
-        reloadConfig();
-        setup();
-        sender.sendMessage(ChatColor.GREEN + "LPTeamSync configuration reloaded.");
-        return true;
-    }
+    @Override
+    public boolean onCommand(CommandSender sender, Command command, String label, String[] args) {
+        String cmd = command.getName().toLowerCase();
 
-    if (label.equalsIgnoreCase("lpts-sync")) {
-        for (Player player : Bukkit.getOnlinePlayers()) {
-            refreshContext(player);
+        if (cmd.equals("reload")) {
+            unregisterAll();
+            reloadConfig();
+            setup();
+            sender.sendMessage(ChatColor.GREEN + "UHC Control Utils configuration reloaded.");
+            return true;
         }
 
-        sender.sendMessage(ChatColor.YELLOW + "Contexts refreshed. Running DiscordSRV resync...");
+        if (cmd.equals("sync")) {
+            for (Player player : Bukkit.getOnlinePlayers()) {
+                refreshContext(player);
+            }
 
-        // Delay to ensure LuckPerms updates are done before DiscordSRV sync
-        Bukkit.getScheduler().runTaskLater(this, () -> {
-            Bukkit.dispatchCommand(Bukkit.getConsoleSender(), "discordsrv resync");
-        }, 40L); // ~2 seconds delay
+            sender.sendMessage(ChatColor.YELLOW + "Contexts refreshed. Running DiscordSRV resync...");
 
-        return true;
+            // Delay to allow context refresh before syncing roles
+            Bukkit.getScheduler().runTaskLater(this, () -> {
+                Bukkit.dispatchCommand(Bukkit.getConsoleSender(), "discordsrv resync");
+            }, 40L); // 2 seconds delay (20L = 1 second)
+
+            return true;
+        }
+
+        return false;
     }
-
-    return false;
-}
 
     private void setup() {
         register("team", null, TeamCalculator::new);
@@ -97,13 +107,11 @@ public boolean onCommand(CommandSender sender, Command command, String label, St
         this.registeredCalculators.clear();
     }
 
-    // Called when player joins – already triggers context
     @EventHandler
     public void onPlayerJoin(PlayerJoinEvent event) {
         refreshContext(event.getPlayer());
     }
 
-    // Called when /trigger uhc.team is used
     @EventHandler
     public void onCommand(PlayerCommandPreprocessEvent event) {
         String message = event.getMessage().toLowerCase();
@@ -119,9 +127,8 @@ public boolean onCommand(CommandSender sender, Command command, String label, St
         }
     }
 
-    // Forces DiscordSRV to resync the player's Discord role based on their LuckPerms group
     public static void runDiscordUpdate(Player player) {
-        Bukkit.getScheduler().runTask(JavaPlugin.getProvidingPlugin(LPTeamSync.class), () -> {
+        Bukkit.getScheduler().runTask(JavaPlugin.getProvidingPlugin(UHCControlUtils.class), () -> {
             Bukkit.dispatchCommand(Bukkit.getConsoleSender(), "discordsrv resync " + player.getName());
         });
     }

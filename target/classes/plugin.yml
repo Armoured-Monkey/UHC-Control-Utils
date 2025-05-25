@@ -1,17 +1,16 @@
-name: LPTeamSync
+name: UHCControlUtils
 version: 1.0.1
 author: ArmouredMonkey
-main: io.github.armouredmonkey.LPTeamSync
+main: io.github.armouredmonkey.UHCControlUtils
 depend: [LuckPerms]
 api-version: 1.13
 
 commands:
-  lpts-reload:
-    description: Reloads the configuration
-    permission: lpteamsync.reload
-    usage: /lpts-reload
-
-  lpts-sync:
-    description: Force sync of Minecraft teams and Discord roles
-    permission: lpteamsync.sync
-    usage: /lpts-sync
+  reload:
+    description: Reloads the UHC Control Utils config
+    permission: uhcutils.reload
+    usage: reload
+  sync:
+    description: Refreshes contexts and syncs with DiscordSRV
+    permission: uhcutils.sync
+    usage: sync
