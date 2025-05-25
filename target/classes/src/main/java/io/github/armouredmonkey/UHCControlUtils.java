@@ -1,6 +1,7 @@
 package io.github.armouredmonkey;
 
 import io.github.armouredmonkey.calculators.TeamCalculator;
+import io.github.armouredmonkey.uhc.JoinListener;
 import net.luckperms.api.LuckPerms;
 import net.luckperms.api.context.ContextCalculator;
 import net.luckperms.api.context.ContextManager;
@@ -21,7 +22,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.function.Supplier;
 
-public class LPTeamSync extends JavaPlugin implements CommandExecutor, Listener {
+public class UHCControlUtils extends JavaPlugin implements CommandExecutor, Listener {
 
     private ContextManager contextManager;
     private LuckPerms luckPerms;
@@ -42,8 +43,11 @@ public class LPTeamSync extends JavaPlugin implements CommandExecutor, Listener 
         getServer().getPluginManager().registerEvents(this, this);
 
         // Register command handlers
-        getCommand("lpts-reload").setExecutor(this);
-        getCommand("lpts-sync").setExecutor(this);
+        getCommand("reload").setExecutor(this);
+        getCommand("sync").setExecutor(this);
+
+        // Register the JoinListener
+        getServer().getPluginManager().registerEvents(new JoinListener(this), this);
     }
 
     @Override
@@ -55,15 +59,15 @@ public class LPTeamSync extends JavaPlugin implements CommandExecutor, Listener 
     public boolean onCommand(CommandSender sender, Command command, String label, String[] args) {
         String cmd = command.getName().toLowerCase();
 
-        if (cmd.equals("lpts-reload")) {
+        if (cmd.equals("reload")) {
             unregisterAll();
             reloadConfig();
             setup();
-            sender.sendMessage(ChatColor.GREEN + "LPTeamSync configuration reloaded.");
+            sender.sendMessage(ChatColor.GREEN + "UHC Control Utils configuration reloaded.");
             return true;
         }
 
-        if (cmd.equals("lpts-sync")) {
+        if (cmd.equals("sync")) {
             for (Player player : Bukkit.getOnlinePlayers()) {
                 refreshContext(player);
             }
@@ -124,7 +128,7 @@ public class LPTeamSync extends JavaPlugin implements CommandExecutor, Listener 
     }
 
     public static void runDiscordUpdate(Player player) {
-        Bukkit.getScheduler().runTask(JavaPlugin.getProvidingPlugin(LPTeamSync.class), () -> {
+        Bukkit.getScheduler().runTask(JavaPlugin.getProvidingPlugin(UHCControlUtils.class), () -> {
             Bukkit.dispatchCommand(Bukkit.getConsoleSender(), "discordsrv resync " + player.getName());
         });
     }

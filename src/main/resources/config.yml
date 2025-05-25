@@ -11,3 +11,6 @@
 #
 # e.g. team=pvp-blue
 team: true
+
+# disable Xaero's minimap
+disableMinimapOnJoin: true

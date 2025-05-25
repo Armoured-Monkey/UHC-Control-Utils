@@ -1,6 +1,7 @@
 package io.github.armouredmonkey;
 
 import io.github.armouredmonkey.calculators.TeamCalculator;
+import io.github.armouredmonkey.uhc.JoinListener;
 import net.luckperms.api.LuckPerms;
 import net.luckperms.api.context.ContextCalculator;
 import net.luckperms.api.context.ContextManager;
@@ -44,6 +45,9 @@ public class UHCControlUtils extends JavaPlugin implements CommandExecutor, List
         // Register command handlers
         getCommand("reload").setExecutor(this);
         getCommand("sync").setExecutor(this);
+
+        // Register the JoinListener
+        getServer().getPluginManager().registerEvents(new JoinListener(this), this);
     }
 
     @Override
