@@ -1,16 +1,16 @@
-name: ${project.name}
+name: UHCControlUtils
 version: ${project.version}
 author: ArmouredMonkey
-main: io.github.armouredmonkey.LPTeamSync
+main: io.github.armouredmonkey.UHCControlUtils
 depend: [LuckPerms]
 api-version: 1.13
 
 commands:
-  lpts-reload:
-    description: Reloads the LPTeamSync config
-    permission: lpteamsync.reload
-    usage: /lpts-reload
-  lpts-sync:
+  reload:
+    description: Reloads the UHC Control Utils config
+    permission: uhcutils.reload
+    usage: reload
+  sync:
     description: Refreshes contexts and syncs with DiscordSRV
-    permission: lpteamsync.sync
-    usage: /lpts-sync
+    permission: uhcutils.sync
+    usage: sync

@@ -7,11 +7,10 @@ api-version: 1.13
 
 commands:
   lpts-reload:
-    description: Reloads the configuration
+    description: Reloads the LPTeamSync config
     permission: lpteamsync.reload
     usage: /lpts-reload
-
   lpts-sync:
-    description: Force sync of Minecraft teams and Discord roles
+    description: Refreshes contexts and syncs with DiscordSRV
     permission: lpteamsync.sync
     usage: /lpts-sync
