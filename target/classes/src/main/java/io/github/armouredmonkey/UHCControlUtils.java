@@ -3,11 +3,12 @@ package io.github.armouredmonkey;
 import io.github.armouredmonkey.calculators.TeamCalculator;
 import io.github.armouredmonkey.uhc.JoinListener;
 import net.luckperms.api.LuckPerms;
-import net.luckperms.api.context.ContextCalculator;
 import net.luckperms.api.context.ContextManager;
-import net.luckperms.api.model.group.Group;
-import net.luckperms.api.node.types.InheritanceNode;
 import net.luckperms.api.context.ImmutableContextSet;
+import net.luckperms.api.model.group.Group;
+import net.luckperms.api.node.Node;
+import net.luckperms.api.node.NodeEqualityPredicate;
+import net.luckperms.api.node.types.InheritanceNode;
 
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
@@ -30,7 +31,7 @@ public class UHCControlUtils extends JavaPlugin implements CommandExecutor, List
 
     private ContextManager contextManager;
     private LuckPerms luckPerms;
-    private final List<ContextCalculator<Player>> registeredCalculators = new ArrayList<>();
+    private final List<net.luckperms.api.context.ContextCalculator<Player>> registeredCalculators = new ArrayList<>();
 
     @Override
     public void onEnable() {
@@ -43,15 +44,11 @@ public class UHCControlUtils extends JavaPlugin implements CommandExecutor, List
         saveDefaultConfig();
         setup();
 
-        // Register listener
         getServer().getPluginManager().registerEvents(this, this);
-
-        // Register command handlers
         getCommand("reload").setExecutor(this);
         getCommand("sync").setExecutor(this);
         getCommand("setupuhcgroups").setExecutor(this);
 
-        // Register the JoinListener
         getServer().getPluginManager().registerEvents(new JoinListener(this), this);
     }
 
@@ -60,65 +57,53 @@ public class UHCControlUtils extends JavaPlugin implements CommandExecutor, List
         unregisterAll();
     }
 
-@Override
-public boolean onCommand(CommandSender sender, Command command, String label, String[] args) {
-    String cmd = command.getName().toLowerCase();
+    @Override
+    public boolean onCommand(CommandSender sender, Command command, String label, String[] args) {
+        String cmd = command.getName().toLowerCase();
 
-    if (cmd.equals("reload")) {
-        if (!sender.hasPermission("uhcutils.reload")) {
-            sender.sendMessage(ChatColor.RED + "You don't have permission to run this command.");
-            return true;
+        switch (cmd) {
+            case "reload":
+                unregisterAll();
+                reloadConfig();
+                setup();
+                sender.sendMessage(ChatColor.GREEN + "UHC Control Utils configuration reloaded.");
+                return true;
+
+            case "sync":
+                for (Player player : Bukkit.getOnlinePlayers()) {
+                    refreshContext(player);
+                }
+                sender.sendMessage(ChatColor.YELLOW + "Contexts refreshed. Running DiscordSRV resync...");
+
+                Bukkit.getScheduler().runTaskLater(this, () ->
+                        Bukkit.dispatchCommand(Bukkit.getConsoleSender(), "discordsrv resync"), 40L);
+                return true;
+
+            case "setupuhcgroups":
+                if (!sender.hasPermission("uhccontrol.setupgroups")) {
+                    sender.sendMessage(ChatColor.RED + "You don't have permission to run this command.");
+                    return true;
+                }
+                sender.sendMessage(ChatColor.YELLOW + "Starting LuckPerms UHC groups setup...");
+                setupUHCGroups(sender);
+                return true;
+
+            default:
+                return false;
         }
-        unregisterAll();
-        reloadConfig();
-        setup();
-        sender.sendMessage(ChatColor.GREEN + "UHC Control Utils configuration reloaded.");
-        return true;
     }
-
-    if (cmd.equals("sync")) {
-        if (!sender.hasPermission("uhcutils.sync")) {
-            sender.sendMessage(ChatColor.RED + "You don't have permission to run this command.");
-            return true;
-        }
-        for (Player player : Bukkit.getOnlinePlayers()) {
-            refreshContext(player);
-        }
-        sender.sendMessage(ChatColor.YELLOW + "Contexts refreshed. Running DiscordSRV resync...");
-
-        // Delay to allow context refresh before syncing roles
-        Bukkit.getScheduler().runTaskLater(this, () -> {
-            Bukkit.dispatchCommand(Bukkit.getConsoleSender(), "discordsrv resync");
-        }, 40L); // 2 seconds delay (20L = 1 second)
-
-        return true;
-    }
-
-    if (cmd.equals("setupuhcgroups")) {
-        if (!sender.hasPermission("uhccontrol.setupgroups")) {
-            sender.sendMessage(ChatColor.RED + "You don't have permission to run this command.");
-            return true;
-        }
-        sender.sendMessage(ChatColor.YELLOW + "Starting LuckPerms UHC groups setup...");
-        setupUHCGroups(sender);
-        return true;
-    }
-
-    return false;
-}
-
 
     private void setup() {
         register("team", null, TeamCalculator::new);
     }
 
-    private void register(String option, String requiredPlugin, Supplier<ContextCalculator<Player>> calculatorSupplier) {
+    private void register(String option, String requiredPlugin, Supplier<net.luckperms.api.context.ContextCalculator<Player>> calculatorSupplier) {
         if (getConfig().getBoolean(option, false)) {
             if (requiredPlugin != null && getServer().getPluginManager().getPlugin(requiredPlugin) == null) {
                 getLogger().info(requiredPlugin + " not present. Skipping registration of '" + option + "'...");
             } else {
                 getLogger().info("Registering '" + option + "' calculator.");
-                ContextCalculator<Player> calculator = calculatorSupplier.get();
+                net.luckperms.api.context.ContextCalculator<Player> calculator = calculatorSupplier.get();
                 this.contextManager.registerCalculator(calculator);
                 this.registeredCalculators.add(calculator);
             }
@@ -151,9 +136,8 @@ public boolean onCommand(CommandSender sender, Command command, String label, St
     }
 
     public static void runDiscordUpdate(Player player) {
-        Bukkit.getScheduler().runTask(JavaPlugin.getProvidingPlugin(UHCControlUtils.class), () -> {
-            Bukkit.dispatchCommand(Bukkit.getConsoleSender(), "discordsrv resync " + player.getName());
-        });
+        Bukkit.getScheduler().runTask(JavaPlugin.getProvidingPlugin(UHCControlUtils.class), () ->
+                Bukkit.dispatchCommand(Bukkit.getConsoleSender(), "discordsrv resync " + player.getName()));
     }
 
     private void setupUHCGroups(CommandSender sender) {
@@ -183,12 +167,18 @@ public boolean onCommand(CommandSender sender, Command command, String label, St
 
         for (int i = 1; i <= 12; i++) {
             String teamGroupName = "team" + i;
-            ImmutableContextSet context = luckPerms.getContextManager().getContextFactory()
-                .makeContextSet("team", "uhc." + i);
+            ImmutableContextSet context = ImmutableContextSet.builder()
+                    .add("team", "uhc." + i)
+                    .build();
+
             InheritanceNode node = InheritanceNode.builder(teamGroupName)
-                .withExtraContext(context)
-                .build();
-            if (!uhcGroup.data().contains(node)) {
+                    .context(context)
+                    .build();
+
+            if (uhcGroup.data().toCollection().stream().noneMatch(existing ->
+                    existing instanceof InheritanceNode &&
+                    existing.equals(node, NodeEqualityPredicate.EXACT))) {
+
                 uhcGroup.data().add(node);
                 sender.sendMessage(ChatColor.GREEN + "Added parent " + teamGroupName + " with context team=uhc." + i + " to uhc");
             } else {
@@ -205,7 +195,11 @@ public boolean onCommand(CommandSender sender, Command command, String label, St
         }
 
         InheritanceNode uhcParentNode = InheritanceNode.builder("uhc").build();
-        if (!defaultGroup.data().contains(uhcParentNode)) {
+
+        if (defaultGroup.data().toCollection().stream().noneMatch(existing ->
+                existing instanceof InheritanceNode &&
+                existing.equals(uhcParentNode, NodeEqualityPredicate.EXACT))) {
+
             defaultGroup.data().add(uhcParentNode);
             sender.sendMessage(ChatColor.GREEN + "Added uhc as parent to default group");
         } else {
@@ -214,9 +208,9 @@ public boolean onCommand(CommandSender sender, Command command, String label, St
 
         CompletableFuture<Void> defaultSaveFuture = luckPerms.getGroupManager().saveGroup(defaultGroup);
 
-        CompletableFuture.allOf(uhcSaveFuture, defaultSaveFuture).thenRun(() -> {
-            sender.sendMessage(ChatColor.GREEN + "UHC groups setup complete!");
-        }).exceptionally(ex -> {
+        CompletableFuture.allOf(uhcSaveFuture, defaultSaveFuture).thenRun(() ->
+                sender.sendMessage(ChatColor.GREEN + "UHC groups setup complete!")
+        ).exceptionally(ex -> {
             sender.sendMessage(ChatColor.RED + "Error saving groups: " + ex.getMessage());
             ex.printStackTrace();
             return null;

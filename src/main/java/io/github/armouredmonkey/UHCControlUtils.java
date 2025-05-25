@@ -6,7 +6,7 @@ import net.luckperms.api.LuckPerms;
 import net.luckperms.api.context.ContextManager;
 import net.luckperms.api.context.ImmutableContextSet;
 import net.luckperms.api.model.group.Group;
-import net.luckperms.api.model.data.NodeMap;
+import net.luckperms.api.node.Node;
 import net.luckperms.api.node.NodeEqualityPredicate;
 import net.luckperms.api.node.types.InheritanceNode;
 
@@ -44,15 +44,11 @@ public class UHCControlUtils extends JavaPlugin implements CommandExecutor, List
         saveDefaultConfig();
         setup();
 
-        // Register listener
         getServer().getPluginManager().registerEvents(this, this);
-
-        // Register command handlers
         getCommand("reload").setExecutor(this);
         getCommand("sync").setExecutor(this);
         getCommand("setupuhcgroups").setExecutor(this);
 
-        // Register the JoinListener
         getServer().getPluginManager().registerEvents(new JoinListener(this), this);
     }
 
@@ -65,39 +61,36 @@ public class UHCControlUtils extends JavaPlugin implements CommandExecutor, List
     public boolean onCommand(CommandSender sender, Command command, String label, String[] args) {
         String cmd = command.getName().toLowerCase();
 
-        if (cmd.equals("reload")) {
-            unregisterAll();
-            reloadConfig();
-            setup();
-            sender.sendMessage(ChatColor.GREEN + "UHC Control Utils configuration reloaded.");
-            return true;
-        }
-
-        if (cmd.equals("sync")) {
-            for (Player player : Bukkit.getOnlinePlayers()) {
-                refreshContext(player);
-            }
-            sender.sendMessage(ChatColor.YELLOW + "Contexts refreshed. Running DiscordSRV resync...");
-
-            // Delay to allow context refresh before syncing roles
-            Bukkit.getScheduler().runTaskLater(this, () -> {
-                Bukkit.dispatchCommand(Bukkit.getConsoleSender(), "discordsrv resync");
-            }, 40L); // 2 seconds delay (20L = 1 second)
-
-            return true;
-        }
-
-        if (cmd.equals("setupuhcgroups")) {
-            if (!sender.hasPermission("uhccontrol.setupgroups")) {
-                sender.sendMessage(ChatColor.RED + "You don't have permission to run this command.");
+        switch (cmd) {
+            case "reload":
+                unregisterAll();
+                reloadConfig();
+                setup();
+                sender.sendMessage(ChatColor.GREEN + "UHC Control Utils configuration reloaded.");
                 return true;
-            }
-            sender.sendMessage(ChatColor.YELLOW + "Starting LuckPerms UHC groups setup...");
-            setupUHCGroups(sender);
-            return true;
-        }
 
-        return false;
+            case "sync":
+                for (Player player : Bukkit.getOnlinePlayers()) {
+                    refreshContext(player);
+                }
+                sender.sendMessage(ChatColor.YELLOW + "Contexts refreshed. Running DiscordSRV resync...");
+
+                Bukkit.getScheduler().runTaskLater(this, () ->
+                        Bukkit.dispatchCommand(Bukkit.getConsoleSender(), "discordsrv resync"), 40L);
+                return true;
+
+            case "setupuhcgroups":
+                if (!sender.hasPermission("uhccontrol.setupgroups")) {
+                    sender.sendMessage(ChatColor.RED + "You don't have permission to run this command.");
+                    return true;
+                }
+                sender.sendMessage(ChatColor.YELLOW + "Starting LuckPerms UHC groups setup...");
+                setupUHCGroups(sender);
+                return true;
+
+            default:
+                return false;
+        }
     }
 
     private void setup() {
@@ -143,9 +136,8 @@ public class UHCControlUtils extends JavaPlugin implements CommandExecutor, List
     }
 
     public static void runDiscordUpdate(Player player) {
-        Bukkit.getScheduler().runTask(JavaPlugin.getProvidingPlugin(UHCControlUtils.class), () -> {
-            Bukkit.dispatchCommand(Bukkit.getConsoleSender(), "discordsrv resync " + player.getName());
-        });
+        Bukkit.getScheduler().runTask(JavaPlugin.getProvidingPlugin(UHCControlUtils.class), () ->
+                Bukkit.dispatchCommand(Bukkit.getConsoleSender(), "discordsrv resync " + player.getName()));
     }
 
     private void setupUHCGroups(CommandSender sender) {
@@ -154,7 +146,6 @@ public class UHCControlUtils extends JavaPlugin implements CommandExecutor, List
             return;
         }
 
-        // Create or confirm team groups
         for (int i = 1; i <= 12; i++) {
             String teamGroupName = "team" + i;
             Group teamGroup = luckPerms.getGroupManager().getGroup(teamGroupName);
@@ -166,7 +157,6 @@ public class UHCControlUtils extends JavaPlugin implements CommandExecutor, List
             }
         }
 
-        // Create or confirm uhc group
         Group uhcGroup = luckPerms.getGroupManager().getGroup("uhc");
         if (uhcGroup == null) {
             uhcGroup = luckPerms.getGroupManager().createAndLoadGroup("uhc").join();
@@ -175,7 +165,6 @@ public class UHCControlUtils extends JavaPlugin implements CommandExecutor, List
             sender.sendMessage(ChatColor.YELLOW + "Group uhc already exists");
         }
 
-        // Add team groups as parents with context to uhc group
         for (int i = 1; i <= 12; i++) {
             String teamGroupName = "team" + i;
             ImmutableContextSet context = ImmutableContextSet.builder()
@@ -183,12 +172,14 @@ public class UHCControlUtils extends JavaPlugin implements CommandExecutor, List
                     .build();
 
             InheritanceNode node = InheritanceNode.builder(teamGroupName)
-                    .withContexts(context)
+                    .context(context)
                     .build();
 
-            NodeMap data = uhcGroup.data();
-            if (!data.contains(node, NodeEqualityPredicate.EXACT)) {
-                data.add(node);
+            if (uhcGroup.data().toCollection().stream().noneMatch(existing ->
+                    existing instanceof InheritanceNode &&
+                    existing.equals(node, NodeEqualityPredicate.EXACT))) {
+
+                uhcGroup.data().add(node);
                 sender.sendMessage(ChatColor.GREEN + "Added parent " + teamGroupName + " with context team=uhc." + i + " to uhc");
             } else {
                 sender.sendMessage(ChatColor.YELLOW + "uhc group already has parent " + teamGroupName + " with context team=uhc." + i);
@@ -197,7 +188,6 @@ public class UHCControlUtils extends JavaPlugin implements CommandExecutor, List
 
         CompletableFuture<Void> uhcSaveFuture = luckPerms.getGroupManager().saveGroup(uhcGroup);
 
-        // Add uhc as parent to default group
         Group defaultGroup = luckPerms.getGroupManager().getGroup("default");
         if (defaultGroup == null) {
             sender.sendMessage(ChatColor.RED + "Default group not found! Cannot add uhc as parent.");
@@ -206,9 +196,11 @@ public class UHCControlUtils extends JavaPlugin implements CommandExecutor, List
 
         InheritanceNode uhcParentNode = InheritanceNode.builder("uhc").build();
 
-        NodeMap defaultData = defaultGroup.data();
-        if (!defaultData.contains(uhcParentNode, NodeEqualityPredicate.EXACT)) {
-            defaultData.add(uhcParentNode);
+        if (defaultGroup.data().toCollection().stream().noneMatch(existing ->
+                existing instanceof InheritanceNode &&
+                existing.equals(uhcParentNode, NodeEqualityPredicate.EXACT))) {
+
+            defaultGroup.data().add(uhcParentNode);
             sender.sendMessage(ChatColor.GREEN + "Added uhc as parent to default group");
         } else {
             sender.sendMessage(ChatColor.YELLOW + "Default group already has uhc as parent");
@@ -216,9 +208,9 @@ public class UHCControlUtils extends JavaPlugin implements CommandExecutor, List
 
         CompletableFuture<Void> defaultSaveFuture = luckPerms.getGroupManager().saveGroup(defaultGroup);
 
-        CompletableFuture.allOf(uhcSaveFuture, defaultSaveFuture).thenRun(() -> {
-            sender.sendMessage(ChatColor.GREEN + "UHC groups setup complete!");
-        }).exceptionally(ex -> {
+        CompletableFuture.allOf(uhcSaveFuture, defaultSaveFuture).thenRun(() ->
+                sender.sendMessage(ChatColor.GREEN + "UHC groups setup complete!")
+        ).exceptionally(ex -> {
             sender.sendMessage(ChatColor.RED + "Error saving groups: " + ex.getMessage());
             ex.printStackTrace();
             return null;
