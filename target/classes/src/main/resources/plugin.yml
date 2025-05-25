@@ -9,8 +9,24 @@ commands:
   reload:
     description: Reloads the UHC Control Utils config
     permission: uhcutils.reload
-    usage: reload
+    usage: /reload
   sync:
     description: Refreshes contexts and syncs with DiscordSRV
     permission: uhcutils.sync
-    usage: sync
+    usage: /sync
+  setupuhcgroups:
+    description: Setup UHC groups automatically in LuckPerms
+    usage: /setupuhcgroups
+    permission: uhccontrol.setupgroups
+
+permissions:
+  uhcutils.reload:
+    description: Allows running /reload command
+    default: op
+  uhcutils.sync:
+    description: Allows running /sync command
+    default: op
+  uhccontrol.setupgroups:
+    description: Allows running the /setupuhcgroups command
+    default: op
+
