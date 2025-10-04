@@ -21,6 +21,8 @@ import org.bukkit.event.Listener;
 import org.bukkit.event.player.PlayerJoinEvent;
 import org.bukkit.event.player.PlayerCommandPreprocessEvent;
 import org.bukkit.plugin.java.JavaPlugin;
+import org.bukkit.World;
+import org.bukkit.GameRule;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -50,6 +52,14 @@ public class UHCControlUtils extends JavaPlugin implements CommandExecutor, List
         getCommand("setupuhcgroups").setExecutor(this);
 
         getServer().getPluginManager().registerEvents(new JoinListener(this), this);
+
+        World nether = Bukkit.getWorld("world_nether");
+    if (nether != null) {
+        nether.setGameRule(GameRule.NATURAL_REGENERATION, false);
+        getLogger().info("Set naturalRegeneration to false in the Nether!");
+    } else {
+        getLogger().warning("Could not find Nether world (world_nether)!");
+    }
     }
 
     @Override
